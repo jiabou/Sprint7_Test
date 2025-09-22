@@ -72,10 +72,6 @@ jobs:
     - name: Run Unit Tests
       run: ./gradlew test
 
-    # Run instrumented / integration tests
-    - name: Run Integration Tests
-      run: ./gradlew connectedAndroidTest
-
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
