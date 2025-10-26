@@ -9,7 +9,8 @@
 # the `language` matrix defined below to confirm you have the correct set of
 # supported CodeQL languages.
 #
-name: "CodeQL Advanced"
+
+name: "CodeQL Advanced with Security Testing"
 
 on:
   push:
@@ -72,12 +73,26 @@ jobs:
     - name: Run Unit Tests
       run: ./gradlew test
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+    # ============================================================
+    # 🔐 Third-Party Security Testing (Snyk Integration)
+    # ============================================================
+    # This section adds a third-party security testing step using Snyk.
+    # Snyk scans the project’s dependencies for known vulnerabilities
+    # and generates a JSON report
+    - name: Run Security Scan with Snyk
+      uses: snyk/actions/gradle@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
-    # Initializes the CodeQL tools for scanning.
+        args: --severity-threshold=medium --json-file-output=snyk-report.json
+
+    - name: Upload Snyk Security Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: snyk-security-report
+        path: snyk-report.json
+    # ============================================================
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
@@ -86,8 +101,9 @@ jobs:
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
-
-        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
+        #
+        # For more details on CodeQL's query packs, refer to:
+        # https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
 
     # If the analyze step fails for one of the languages you are analyzing with
