@@ -79,12 +79,18 @@ jobs:
     # This section adds a third-party security testing step using Snyk.
     # Snyk scans the project’s dependencies for known vulnerabilities
     # and generates a JSON report
+    - name: Setup Node.js for Snyk
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Install Snyk CLI
+      run: npm install -g snyk
+
     - name: Run Security Scan with Snyk
-      uses: snyk/actions/gradle@master
+      run: snyk test --all-projects --severity-threshold=medium --json-file-output=snyk-report.json
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        args: --severity-threshold=medium --json-file-output=snyk-report.json
 
     - name: Upload Snyk Security Report
       uses: actions/upload-artifact@v4
@@ -121,7 +127,6 @@ jobs:
         echo '  make bootstrap'
         echo '  make release'
         exit 1
-
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
