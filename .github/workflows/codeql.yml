@@ -78,25 +78,43 @@ jobs:
     # ============================================================
     # This section adds a third-party security testing step using Snyk.
     # Snyk scans the project’s dependencies for known vulnerabilities
-    # and generates a JSON report
+    # and generates a JSON report.
+    # In this modified version, we filter results to show ONLY low-severity vulnerabilities.
     - name: Setup Node.js for Snyk
       uses: actions/setup-node@v3
       with:
         node-version: '20'
 
-    - name: Install Snyk CLI
-      run: npm install -g snyk
+    - name: Install Snyk CLI and jq
+      run: |
+        npm install -g snyk
+        sudo apt-get update && sudo apt-get install -y jq
 
-    - name: Run Security Scan with Snyk
-      run: snyk test --all-projects --severity-threshold=critical --json-file-output=snyk-report.json
+    - name: Run Security Scan with Snyk (Only Low Severity)
+      run: |
+        # Run full Snyk scan and output all vulnerabilities to JSON
+        snyk test --all-projects --severity-threshold=low --json-file-output=full-snyk-report.json
+        
+        # Filter JSON to include only low-severity vulnerabilities
+        cat full-snyk-report.json | jq '[.vulnerabilities[] | select(.severity=="low")]' > snyk-low-report.json
+        
+        # Display summary
+        echo "================ LOW SEVERITY VULNERABILITIES ================"
+        jq '.[] | {title, severity, package, version, identifiers}' snyk-low-report.json || echo "No low-severity vulnerabilities found."
+
+        # Optional: fail the build if low-severity issues exist (uncomment below if desired)
+        # if [ $(jq length snyk-low-report.json) -gt 0 ]; then
+        #   echo "❌ Low-severity vulnerabilities detected!"
+        #   exit 1
+        # fi
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-    - name: Upload Snyk Security Report
+    - name: Upload Snyk Low Severity Report
       uses: actions/upload-artifact@v4
       with:
-        name: snyk-security-report
-        path: snyk-report.json
+        name: snyk-low-severity-report
+        path: snyk-low-report.json
     # ============================================================
 
     - name: Initialize CodeQL
@@ -127,6 +145,7 @@ jobs:
         echo '  make bootstrap'
         echo '  make release'
         exit 1
+
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
